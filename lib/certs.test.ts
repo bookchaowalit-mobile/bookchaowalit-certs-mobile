@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   certStatus,
   daysBetween,
+  cleanCertInput,
   describeExpiry,
   isValidDate,
   SAMPLE_CERTS,
@@ -37,9 +38,9 @@ describe("certStatus", () => {
     expect(certStatus(cert("2025-12-01"), TODAY, 90)).toBe("expiring");
   });
   it("describes expiry", () => {
-    expect(describeExpiry(cert("2025-09-29"), TODAY)).toBe("Expired 2 day(s) ago");
+    expect(describeExpiry(cert("2025-09-29"), TODAY)).toBe("Expired 2 days ago");
     expect(describeExpiry(cert("2025-10-01"), TODAY)).toBe("Expires today");
-    expect(describeExpiry(cert("2025-10-11"), TODAY)).toBe("Expires in 10 day(s)");
+    expect(describeExpiry(cert("2025-10-11"), TODAY)).toBe("Expires in 10 days");
     expect(describeExpiry(cert(), TODAY)).toBe("No expiry");
   });
 });
@@ -64,5 +65,23 @@ describe("validateCert", () => {
     expect(validateCert({ ...ok, issuer: "" })).toMatch(/Issuer/);
     expect(validateCert({ ...ok, issuedOn: "2025-02-30" })).toMatch(/Issued/);
     expect(validateCert({ ...ok, expiresOn: "2024-12-31" })).toMatch(/after/);
+  });
+});
+
+describe("pass 3 edge cases", () => {
+  it("uses singular day", () => {
+    expect(describeExpiry(cert("2025-10-02"), TODAY)).toBe("Expires in 1 day");
+    expect(describeExpiry(cert("2025-09-30"), TODAY)).toBe("Expired 1 day ago");
+  });
+  it("accepts dates with stray spaces or full-width digits", () => {
+    const raw = { name: " AWS ", issuer: "Amazon", issuedOn: " 2024-01-01 ", expiresOn: "\uFF12\uFF10\uFF12\uFF17-01-01" };
+    expect(validateCert(raw)).toBeNull();
+    expect(cleanCertInput(raw)).toEqual({ name: "AWS", issuer: "Amazon", issuedOn: "2024-01-01", expiresOn: "2027-01-01" });
+    expect(cleanCertInput({ ...raw, expiresOn: "  " }).expiresOn).toBeUndefined();
+  });
+  it("rejects an issue date in the future when today is known", () => {
+    const input = { name: "X", issuer: "Y", issuedOn: "2025-10-02" };
+    expect(validateCert(input, TODAY)).toBe("Issued date cannot be in the future");
+    expect(validateCert(input)).toBeNull();
   });
 });

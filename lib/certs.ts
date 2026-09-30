@@ -60,17 +60,28 @@ export function statusSummary(certs: Cert[], today: string): Record<CertStatus, 
 export function describeExpiry(cert: Cert, today: string): string {
   if (!cert.expiresOn) return "No expiry";
   const left = daysBetween(today, cert.expiresOn);
-  if (left < 0) return `Expired ${-left} day(s) ago`;
+  const days = (n: number) => `${n} ${n === 1 ? "day" : "days"}`;
+  if (left < 0) return `Expired ${days(-left)} ago`;
   if (left === 0) return "Expires today";
-  return `Expires in ${left} day(s)`;
+  return `Expires in ${days(left)}`;
 }
 
 export type NewCertInput = { name: string; issuer: string; issuedOn: string; expiresOn?: string };
 
-export function validateCert(input: NewCertInput): string | null {
-  if (!input.name.trim()) return "Name is required";
-  if (!input.issuer.trim()) return "Issuer is required";
+/** Trim fields and normalise full-width digits in dates ("２０２５-０１-０１"). */
+export function cleanCertInput(input: NewCertInput): NewCertInput {
+  const date = (s: string) => s.normalize("NFKC").trim();
+  const expiresOn = input.expiresOn === undefined ? undefined : date(input.expiresOn) || undefined;
+  return { name: input.name.trim(), issuer: input.issuer.trim(), issuedOn: date(input.issuedOn), expiresOn };
+}
+
+/** Validates cleaned input; pass `today` to also reject an issue date in the future. */
+export function validateCert(raw: NewCertInput, today?: string): string | null {
+  const input = cleanCertInput(raw);
+  if (!input.name) return "Name is required";
+  if (!input.issuer) return "Issuer is required";
   if (!isValidDate(input.issuedOn)) return "Issued date must be a real date (YYYY-MM-DD)";
+  if (today && isValidDate(today) && input.issuedOn > today) return "Issued date cannot be in the future";
   if (input.expiresOn) {
     if (!isValidDate(input.expiresOn)) return "Expiry date must be a real date (YYYY-MM-DD)";
     if (input.expiresOn <= input.issuedOn) return "Expiry must be after the issue date";

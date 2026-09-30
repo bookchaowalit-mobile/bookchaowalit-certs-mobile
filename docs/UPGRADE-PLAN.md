@@ -48,3 +48,12 @@ Score: 7/10 (was 6/10) — certifications now survive restarts; no expiry notifi
 - Accessibility: add/cancel toggle exposes expanded state, save button labelled, profile links get link roles.
 - Advisories: `overrides.postcss ^8.5.28` clears the high-severity PostCSS advisory in Expo metro-config (minor bump). Remaining `image-size` (metro, bundler-only), `uuid` (via `xcode`) and `decode-uri-component` (via `query-string@7`) need an Expo SDK major upgrade; deliberately not auto-fixed.
 - Verified: typecheck, lint, 16 vitest tests, Android `expo export` bundle.
+
+## Done in this pass (pass 3)
+
+Score: 7.5/10 (was 7/10) — edge-case hunt in `lib/certs.ts`.
+
+- Bug: an issued date with a trailing space (common from paste/autocomplete) failed validation as "not a real date", and full-width digits from CJK keyboards were rejected; `cleanCertInput` trims and NFKC-normalises before validating and saving.
+- Bug: an issue date in the future was accepted; `validateCert(input, today)` now rejects it.
+- "Expires in 1 day(s)" → "Expires in 1 day" / "10 days".
+- Verified: typecheck, lint, 19 vitest tests, Android `expo export`.

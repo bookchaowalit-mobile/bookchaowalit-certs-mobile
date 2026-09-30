@@ -8,6 +8,7 @@ import {
   SAMPLE_CERTS,
   sortByUrgency,
   statusSummary,
+  cleanCertInput,
   validateCert,
   type Cert,
   type CertStatus,
@@ -40,11 +41,11 @@ export default function CertsScreen() {
   const summary = statusSummary(certs, today);
 
   const save = () => {
-    const input = { ...form, expiresOn: form.expiresOn.trim() || undefined };
-    const problem = validateCert(input);
+    const input = cleanCertInput(form);
+    const problem = validateCert(input, today);
     setError(problem);
     if (problem) return;
-    setCerts([...certs, { id: `${Date.now()}`, ...input, name: input.name.trim(), issuer: input.issuer.trim() }]);
+    setCerts([...certs, { id: `${Date.now()}`, ...input }]);
     setForm({ name: "", issuer: "", issuedOn: "", expiresOn: "" });
     setShowForm(false);
   };

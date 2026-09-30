@@ -84,3 +84,19 @@ export const SAMPLE_CERTS: Cert[] = [
   { id: "c3", name: "Professional Scrum Master I", issuer: "Scrum.org", issuedOn: "2021-06-15" },
   { id: "c4", name: "Google Cloud Associate Cloud Engineer", issuer: "Google Cloud", issuedOn: "2022-01-20", expiresOn: "2025-01-20" },
 ];
+
+/** Type guard used when loading certifications from local storage. */
+export function isCert(value: unknown): value is Cert {
+  if (typeof value !== "object" || value === null) return false;
+  const c = value as Record<string, unknown>;
+  return (
+    typeof c.id === "string" &&
+    typeof c.name === "string" &&
+    c.name.trim().length > 0 &&
+    typeof c.issuer === "string" &&
+    typeof c.issuedOn === "string" &&
+    isValidDate(c.issuedOn) &&
+    (c.expiresOn === undefined || (typeof c.expiresOn === "string" && isValidDate(c.expiresOn))) &&
+    (c.credentialId === undefined || typeof c.credentialId === "string")
+  );
+}

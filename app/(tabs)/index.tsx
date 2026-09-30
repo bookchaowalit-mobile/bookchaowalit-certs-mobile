@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   certStatus,
   describeExpiry,
+  isCert,
   SAMPLE_CERTS,
   sortByUrgency,
   statusSummary,
@@ -11,6 +12,10 @@ import {
   type Cert,
   type CertStatus,
 } from "../../lib/certs";
+import { listCodec } from "../../lib/persist";
+import { usePersistentState } from "../../lib/usePersistentState";
+
+const certsCodec = listCodec(isCert);
 
 const STATUS_STYLE: Record<CertStatus, { color: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
   expired: { color: "#B00020", label: "Expired", icon: "close-circle" },
@@ -26,7 +31,7 @@ function isoToday(): string {
 
 export default function CertsScreen() {
   const today = isoToday();
-  const [certs, setCerts] = useState<Cert[]>(SAMPLE_CERTS);
+  const [certs, setCerts] = usePersistentState<Cert[]>("certs.list.v1", SAMPLE_CERTS, certsCodec);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", issuer: "", issuedOn: "", expiresOn: "" });
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +65,12 @@ export default function CertsScreen() {
               </View>
             ))}
           </View>
-          <Pressable style={styles.button} onPress={() => setShowForm(!showForm)} accessibilityRole="button">
+          <Pressable
+            style={styles.button}
+            onPress={() => setShowForm(!showForm)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showForm }}
+          >
             <Text style={styles.buttonText}>{showForm ? "Cancel" : "Add certificate"}</Text>
           </Pressable>
           {showForm && (
@@ -84,7 +94,8 @@ export default function CertsScreen() {
                 />
               ))}
               {error && <Text style={styles.error}>{error}</Text>}
-              <Pressable style={styles.button} onPress={save} accessibilityRole="button">
+              <Pressable style={styles.button} onPress={save} accessibilityRole="button" accessibilityLabel="Save certification">
+
                 <Text style={styles.buttonText}>Save</Text>
               </Pressable>
             </View>
